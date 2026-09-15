@@ -3,5 +3,6 @@
 # независимо от настроек core.autocrlf на машине разработчика.
 * text=auto
 *.sh text eol=lf
+mvnw text eol=lf
 *.cmd text eol=crlf
 *.bat text eol=crlf
