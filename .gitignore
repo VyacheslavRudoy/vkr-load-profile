@@ -1,0 +1,30 @@
+# Результаты сборки
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# Локальные конфигурации и секреты
+.env
+.env.*
+application-local.*
+docker-compose.override.yml
+
+# Выгруженные трассировки
+traces/
+
+# Журналы прогонов и результаты JMeter
+logs/
+*.log
+*.jtl
+results/
+
+# Файлы операционной системы
+.DS_Store
+Thumbs.db
