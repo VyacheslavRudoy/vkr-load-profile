@@ -16,6 +16,8 @@
     <name>demo-stand</name>
     <description>Демонстрационный стенд: микросервисы и генератор пользовательской активности</description>
 
-    <!-- Сервисы стенда и генератор активности — отдельные приложения,
-         каждое подключается как модуль этого POM. -->
+    <modules>
+        <module>services/catalog-service</module>
+        <module>services/order-service</module>
+    </modules>
 </project>
