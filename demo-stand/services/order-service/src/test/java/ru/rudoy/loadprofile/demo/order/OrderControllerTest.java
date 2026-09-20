@@ -22,7 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * Сервис каталога заменён заглушкой: проверяется только сервис заказов.
  */
-@SpringBootTest
+@SpringBootTest(properties = "otel.sdk.disabled=true")
 @AutoConfigureMockMvc
 class OrderControllerTest {
 
