@@ -56,3 +56,18 @@ curl -X POST "http://localhost:8082/api/orders/{id}/items?productId=7&quantity=2
 curl -X POST "http://localhost:8082/api/orders/{id}/checkout"
 curl "http://localhost:8082/api/orders/{id}"
 ```
+
+## Трассировка
+
+Оба сервиса подключают OpenTelemetry Spring Boot starter: он создаёт спаны
+для входящих HTTP-запросов и для вызова каталога из сервиса заказов
+и отправляет их по OTLP на `http://localhost:4318`. Другой адрес задаётся
+переменной окружения `OTEL_EXPORTER_OTLP_ENDPOINT`.
+
+Посмотреть трассы локально проще всего в Jaeger:
+
+```
+docker run --rm -p 16686:16686 -p 4318:4318 jaegertracing/jaeger:2.21.0
+```
+
+После нескольких запросов к сервисам трассы видны на http://localhost:16686.
