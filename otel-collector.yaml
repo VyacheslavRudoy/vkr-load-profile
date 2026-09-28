@@ -1,0 +1,21 @@
+# Коллектор принимает спаны от сервисов стенда по OTLP (HTTP) и передаёт
+# их в Jaeger, тоже по OTLP (HTTP): вся цепочка говорит на одном протоколе.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  otlp_http/jaeger:
+    endpoint: http://jaeger:4318
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/jaeger]

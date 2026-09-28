@@ -1,0 +1,51 @@
+# Демонстрационный стенд целиком: оба сервиса, коллектор OpenTelemetry
+# и Jaeger. Сервисы собираются из jar-файлов, поэтому сначала ./mvnw verify
+# в корне репозитория, затем docker compose up --build --detach --wait.
+services:
+  catalog-service:
+    build: demo-stand/services/catalog-service
+    ports:
+      - "8081:8081"
+    environment:
+      # Адрес коллектора из application.properties (localhost) здесь не подходит:
+      # внутри compose каждый сервис — отдельный хост
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    depends_on:
+      - otel-collector
+      - jaeger
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8081"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  order-service:
+    build: demo-stand/services/order-service
+    ports:
+      - "8082:8082"
+    environment:
+      CATALOG_URL: http://catalog-service:8081
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    depends_on:
+      - otel-collector
+      - jaeger
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8082"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.161.0
+    command: ["--config=/etc/otel-collector/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otel-collector/config.yaml:ro
+    ports:
+      - "4318:4318"
+
+  jaeger:
+    image: jaegertracing/jaeger:2.21.0
+    ports:
+      - "16686:16686"

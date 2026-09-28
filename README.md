@@ -77,6 +77,13 @@ Wrapper, который скачивает нужную версию сам.
 java -jar profiler/target/profiler.jar --help
 ```
 
+Демонстрационный стенд — микросервисы, OpenTelemetry Collector и Jaeger —
+поднимается целиком через Docker Compose (подробнее в demo-stand/README.md):
+
+```
+docker compose up --build --detach --wait
+```
+
 ---
 
 ## English summary

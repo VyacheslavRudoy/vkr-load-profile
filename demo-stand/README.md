@@ -36,8 +36,21 @@ order-service
 
 ## Запуск локально
 
-После сборки проекта (`./mvnw verify` в корне) сервисы запускаются
-из двух терминалов:
+Стенд целиком — оба сервиса, коллектор OpenTelemetry и Jaeger — поднимается
+одной командой из корня репозитория (нужен запущенный Docker; jar-файлы
+собираются заранее):
+
+```
+./mvnw verify
+docker compose up --build --detach --wait
+```
+
+`--wait` дожидается готовности сервисов. Дальше доступны: API каталога на
+http://localhost:8081, API заказов на http://localhost:8082, трассы в Jaeger
+на http://localhost:16686. Останов — `docker compose down`.
+
+Без Docker сервисы запускаются из двух терминалов (Jaeger при этом
+поднимается отдельно, см. раздел «Трассировка»):
 
 ```
 java -jar demo-stand/services/catalog-service/target/catalog-service.jar
@@ -62,7 +75,8 @@ curl "http://localhost:8082/api/orders/{id}"
 Оба сервиса подключают OpenTelemetry Spring Boot starter: он создаёт спаны
 для входящих HTTP-запросов и для вызова каталога из сервиса заказов
 и отправляет их по OTLP на `http://localhost:4318`. Другой адрес задаётся
-переменной окружения `OTEL_EXPORTER_OTLP_ENDPOINT`.
+переменной окружения `OTEL_EXPORTER_OTLP_ENDPOINT`: в docker compose
+спаны уходят коллектору `otel-collector`, а коллектор передаёт их в Jaeger.
 
 Посмотреть трассы локально проще всего в Jaeger:
 
@@ -113,3 +127,5 @@ java -jar demo-stand/traffic-generator/target/traffic-generator.jar --sessions-p
 поэтому все трассы сессии несут атрибут `session.id`.
 
 Команда завершается с кодом 1, если хоть одна сессия завершилась ошибкой.
+Когда стенд запущен через docker compose, генератору ничего менять не нужно:
+сервисы доступны на тех же портах localhost.
