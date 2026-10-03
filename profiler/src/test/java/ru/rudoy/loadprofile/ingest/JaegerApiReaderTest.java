@@ -53,6 +53,15 @@ class JaegerApiReaderTest {
     }
 
     @Test
+    void unwrapsTheResultEnvelope() throws IOException {
+        jaeger.respondWith(200, "{\"result\":" + Files.readString(SAMPLE) + "}");
+
+        List<Span> spans = reader.fetch(window());
+
+        assertThat(spans).hasSize(4);
+    }
+
+    @Test
     void rejectsErrorResponse() {
         jaeger.respondWith(503, "service unavailable");
 

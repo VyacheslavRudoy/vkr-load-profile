@@ -16,7 +16,7 @@ final class JaegerStub implements AutoCloseable {
     private final HttpServer server;
     private volatile URI lastRequestUri;
     private volatile int status = 200;
-    private volatile String body = "{\"resourceSpans\":[]}";
+    private volatile String body = "{\"result\":{\"resourceSpans\":[]}}";
 
     JaegerStub() throws IOException {
         server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);

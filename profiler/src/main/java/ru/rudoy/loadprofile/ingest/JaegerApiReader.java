@@ -1,5 +1,8 @@
 package ru.rudoy.loadprofile.ingest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -14,13 +17,15 @@ import java.util.List;
  * <p>
  * Jaeger 2.x отдаёт трассы по HTTP в OTLP JSON на {@code /api/v3/traces};
  * границы окна передаются параметрами {@code query.startTimeMin} и
- * {@code query.startTimeMax}. Ответ разбирается уже готовым
- * {@link OtlpJsonReader}, поэтому этот класс занимается только запросом:
- * собирает адрес, ходит по сети и проверяет код ответа.
+ * {@code query.startTimeMax}. Ответ приходит в конверте {@code result} —
+ * класс снимает его и отдаёт содержимое готовому {@link OtlpJsonReader},
+ * поэтому сам занимается только запросом: собирает адрес, ходит по сети
+ * и проверяет код ответа.
  */
 public final class JaegerApiReader {
 
     private final HttpClient http = HttpClient.newHttpClient();
+    private final ObjectMapper json = new ObjectMapper();
     private final URI baseUri;
     private final OtlpJsonReader otlpJson = new OtlpJsonReader();
 
@@ -46,7 +51,20 @@ public final class JaegerApiReader {
             throw new IllegalStateException("Jaeger returned HTTP " + response.statusCode()
                     + ": " + excerpt(response.body()));
         }
-        return otlpJson.readSpans(response.body());
+        return otlpJson.readSpans(otlpPayload(response.body()));
+    }
+
+    /**
+     * Снимает конверт {@code {"result": {...}}}, в который Jaeger заворачивает
+     * ответ. Ответ без конверта — как от заглушек — принимается как есть.
+     */
+    private String otlpPayload(String body) {
+        try {
+            JsonNode root = json.readTree(body);
+            return root.has("result") ? root.get("result").toString() : body;
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Jaeger answer is not valid JSON", e);
+        }
     }
 
     private HttpResponse<String> send(HttpRequest request) {
