@@ -49,6 +49,47 @@ class TraceTest {
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
+    @Test
+    void rootIsTheSpanWithoutParent() {
+        Span child = span("bbaaddeb", "00f067aa", SpanKind.CLIENT,
+                TIME.plusMillis(5), TIME.plusMillis(10));
+        Span root = span("00f067aa", null, SpanKind.SERVER, TIME, TIME.plusMillis(50));
+
+        Trace trace = new Trace("4bf92f35", List.of(child, root));
+
+        assertThat(trace.rootSpan()).contains(root);
+    }
+
+    @Test
+    void rootCanBeASpanWhoseParentIsOutsideTheTrace() {
+        Span orphan = span("00f067aa", "deadbeef", SpanKind.SERVER, TIME, TIME);
+
+        Trace trace = new Trace("4bf92f35", List.of(orphan));
+
+        assertThat(trace.rootSpan()).contains(orphan);
+    }
+
+    @Test
+    void severalOutsideParentsGiveTheEarliestSpan() {
+        Span later = span("bbb", "deadbeef", SpanKind.SERVER,
+                TIME.plusSeconds(1), TIME.plusSeconds(2));
+        Span earlier = span("ccc", "deadbeef", SpanKind.SERVER, TIME, TIME.plusSeconds(1));
+
+        Trace trace = new Trace("4bf92f35", List.of(later, earlier));
+
+        assertThat(trace.rootSpan()).contains(earlier);
+    }
+
+    @Test
+    void parentCycleLeavesNoRoot() {
+        Span first = span("aaa", "bbb", SpanKind.SERVER, TIME, TIME);
+        Span second = span("bbb", "aaa", SpanKind.SERVER, TIME, TIME);
+
+        Trace trace = new Trace("4bf92f35", List.of(first, second));
+
+        assertThat(trace.rootSpan()).isEmpty();
+    }
+
     private static Span span(String spanId, String parentSpanId, SpanKind kind,
                              Instant start, Instant end) {
         return new Span("4bf92f35", spanId, parentSpanId, kind, "order-service",
