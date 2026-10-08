@@ -12,8 +12,9 @@ import ru.rudoy.loadprofile.ingest.Trace;
  * Трасса без атрибута — ошибка с именем трассы: раз атрибут не проставлен,
  * эта стратегия к таким данным неприменима и нужен другой способ группировки.
  */
-public final class SessionByIdStrategy {
+public final class SessionByIdStrategy implements SessionStrategy {
 
+    @Override
     public List<Session> group(List<Trace> traces) {
         Map<String, List<Trace>> bySession = new LinkedHashMap<>();
         for (Trace trace : traces) {
