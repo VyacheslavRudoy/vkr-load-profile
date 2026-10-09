@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -56,6 +57,22 @@ class SessionByIdStrategyTest {
         assertThatThrownBy(() -> strategy.group(List.of(anonymous)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("t-x");
+    }
+
+    @Test
+    void referenceSetYieldsTwelveGeneratorPauses() {
+        List<Trace> traces = new TraceAssembler().assemble(new OtlpJsonReader().readFile(REFERENCE));
+
+        List<Duration> pauses = strategy.group(traces).stream()
+                .flatMap(session -> session.thinkTimes().stream())
+                .toList();
+
+        // 18 трасс в 6 сессиях дают 12 пауз; генератор выдерживает 1–3 с
+        assertThat(pauses).hasSize(12);
+        assertThat(pauses).allSatisfy(pause ->
+                assertThat(pause.compareTo(Duration.ZERO)).isNotNegative());
+        assertThat(pauses).allSatisfy(pause ->
+                assertThat(pause.compareTo(Duration.ofSeconds(4))).isLessThan(0));
     }
 
     private static Trace trace(String traceId, String sessionId, String start) {
