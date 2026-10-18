@@ -16,4 +16,9 @@ public class SessionTracingConfiguration {
         return customizer -> customizer.addTracerProviderCustomizer(
                 (builder, config) -> builder.addSpanProcessor(new SessionIdSpanProcessor()));
     }
+
+    @Bean
+    ResponseBodySpanFilter responseBodySpanFilter() {
+        return new ResponseBodySpanFilter();
+    }
 }
