@@ -14,9 +14,9 @@ import ru.rudoy.loadprofile.model.ParameterSource;
 import ru.rudoy.loadprofile.model.ParameterSpec;
 import ru.rudoy.loadprofile.session.Session;
 
-class CorrelatedParametersBuilderTest {
+class ParametersBuilderTest {
 
-    private final CorrelatedParametersBuilder builder = new CorrelatedParametersBuilder();
+    private final ParametersBuilder builder = new ParametersBuilder();
 
     @Test
     void linksOrderAndProductIdsToEarlierResponses() {
@@ -75,6 +75,54 @@ class CorrelatedParametersBuilderTest {
                         "[{\"id\":7}]"));
 
         assertThat(builder.build(List.of(session))).isEmpty();
+    }
+
+    @Test
+    void unlinkedParametersBecomeFeederSpecsWithValues() {
+        String orderId = "5e2aaee4-ead4-427e-93f0-ced541654dd4";
+        Session purchase = session(
+                trace("t-1", "GET", "/api/products", "category=books",
+                        "[{\"id\":7},{\"id\":12}]"),
+                trace("t-2", "POST", "/api/orders", "customerId=5",
+                        "{\"id\":\"" + orderId + "\",\"total\":99}"),
+                trace("t-3", "POST", "/api/orders/" + orderId + "/items", "productId=7&quantity=2",
+                        "{\"ok\":true}"));
+
+        assertThat(builder.buildFeeder(List.of(purchase))).containsExactlyInAnyOrder(
+                new ParameterSpec("category", "GET /api/products", ParameterSource.FEEDER,
+                        null, List.of("books")),
+                new ParameterSpec("customerId", "POST /api/orders", ParameterSource.FEEDER,
+                        null, List.of("5")),
+                new ParameterSpec("quantity", "POST /api/orders/{uuid}/items", ParameterSource.FEEDER,
+                        null, List.of("2")));
+    }
+
+    @Test
+    void fullyCorrelatedParametersStayOutOfFeeder() {
+        String orderId = "5e2aaee4-ead4-427e-93f0-ced541654dd4";
+        Session purchase = session(
+                trace("t-1", "POST", "/api/orders", "customerId=5",
+                        "{\"id\":\"" + orderId + "\"}"),
+                trace("t-2", "POST", "/api/orders/" + orderId + "/checkout", null, "{\"ok\":true}"));
+
+        List<ParameterSpec> feeder = builder.buildFeeder(List.of(purchase));
+
+        assertThat(feeder).extracting(ParameterSpec::name).containsExactly("customerId");
+    }
+
+    @Test
+    void feederCollectsDistinctValuesInSeenOrder() {
+        Session first = session(
+                trace("t-1", "GET", "/api/products", "category=books", "[{\"id\":7}]"),
+                trace("t-2", "GET", "/api/products", "category=sport", null));
+        Session second = session(
+                trace("t-3", "GET", "/api/products", "category=books", null));
+
+        List<ParameterSpec> feeder = builder.buildFeeder(List.of(first, second));
+
+        assertThat(feeder).hasSize(1);
+        assertThat(feeder.get(0).name()).isEqualTo("category");
+        assertThat(feeder.get(0).sampleValues()).containsExactly("books", "sport");
     }
 
     private static Session session(Trace... traces) {

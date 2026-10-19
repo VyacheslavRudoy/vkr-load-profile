@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import ru.rudoy.loadprofile.ingest.PathTemplates;
@@ -16,18 +17,39 @@ import ru.rudoy.loadprofile.model.ParameterSpec;
 import ru.rudoy.loadprofile.session.Session;
 
 /**
- * Выявление коррелируемых параметров: значение параметра запроса ищется
- * среди скаляров тел ответов более ранних запросов той же сессии — строки
- * совпадают точно, числа по значению. Параметр считается коррелируемым,
- * когда совпали все его наблюдавшиеся значения; источником берётся самая
- * частая пара «операция + путь в JSON». Совпадение по подстроке не считается:
- * часть идентификатора давала бы ложные связи.
+ * Спецификации параметров запросов. Значение параметра ищется среди скаляров
+ * тел ответов более ранних запросов той же сессии — строки совпадают точно,
+ * числа по значению; подстрока не считается, часть идентификатора давала бы
+ * ложные связи. Параметр, у которого совпали все наблюдавшиеся значения,
+ * получает спецификацию CORRELATED с самой частой парой «операция + путь
+ * в JSON»; остальные — FEEDER со всеми наблюдавшимися значениями без
+ * повторов, в порядке появления.
  */
-public final class CorrelatedParametersBuilder {
+public final class ParametersBuilder {
 
     private final ObjectMapper json = new ObjectMapper();
 
     public List<ParameterSpec> build(List<Session> sessions) {
+        List<ParameterSpec> specs = new ArrayList<>();
+        for (Stats stats : walk(sessions).values()) {
+            if (stats.isCorrelated()) {
+                specs.add(stats.toCorrelatedSpec());
+            }
+        }
+        return specs;
+    }
+
+    public List<ParameterSpec> buildFeeder(List<Session> sessions) {
+        List<ParameterSpec> specs = new ArrayList<>();
+        for (Stats stats : walk(sessions).values()) {
+            if (stats.isFeeder()) {
+                specs.add(stats.toFeederSpec());
+            }
+        }
+        return specs;
+    }
+
+    private Map<String, Stats> walk(List<Session> sessions) {
         Map<String, Stats> byParameter = new LinkedHashMap<>();
         for (Session session : sessions) {
             List<EarlierResponse> earlierResponses = new ArrayList<>();
@@ -39,7 +61,7 @@ public final class CorrelatedParametersBuilder {
                 for (Param param : paramsOf(root, trace)) {
                     Stats stats = byParameter.computeIfAbsent(ref + "#" + param.name(),
                             key -> new Stats(ref, param.name()));
-                    stats.total++;
+                    stats.observed(param.value());
                     Source source = findInEarlier(earlierResponses, param.value());
                     if (source != null) {
                         stats.matched(source);
@@ -51,13 +73,7 @@ public final class CorrelatedParametersBuilder {
                 }
             }
         }
-        List<ParameterSpec> specs = new ArrayList<>();
-        for (Stats stats : byParameter.values()) {
-            if (stats.isCorrelated()) {
-                specs.add(stats.toSpec());
-            }
-        }
-        return specs;
+        return byParameter;
     }
 
     private static List<Param> paramsOf(Span root, Trace trace) {
@@ -159,10 +175,16 @@ public final class CorrelatedParametersBuilder {
         private final String name;
         private int total;
         private final Map<Source, Integer> sources = new LinkedHashMap<>();
+        private final LinkedHashSet<String> values = new LinkedHashSet<>();
 
         private Stats(String operationRef, String name) {
             this.operationRef = operationRef;
             this.name = name;
+        }
+
+        private void observed(String value) {
+            total++;
+            values.add(value);
         }
 
         private void matched(Source source) {
@@ -170,11 +192,18 @@ public final class CorrelatedParametersBuilder {
         }
 
         private boolean isCorrelated() {
-            int matched = sources.values().stream().mapToInt(Integer::intValue).sum();
-            return total > 0 && matched == total;
+            return total > 0 && matchedCount() == total;
         }
 
-        private ParameterSpec toSpec() {
+        private boolean isFeeder() {
+            return total > 0 && matchedCount() < total;
+        }
+
+        private int matchedCount() {
+            return sources.values().stream().mapToInt(Integer::intValue).sum();
+        }
+
+        private ParameterSpec toCorrelatedSpec() {
             Source best = null;
             int bestCount = 0;
             for (var entry : sources.entrySet()) {
@@ -185,6 +214,11 @@ public final class CorrelatedParametersBuilder {
             }
             return new ParameterSpec(name, operationRef, ParameterSource.CORRELATED,
                     new ParameterSpec.Correlation(best.operationRef(), best.jsonPath()), List.of());
+        }
+
+        private ParameterSpec toFeederSpec() {
+            return new ParameterSpec(name, operationRef, ParameterSource.FEEDER, null,
+                    List.copyOf(values));
         }
     }
 }
