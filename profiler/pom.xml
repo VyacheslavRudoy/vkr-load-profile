@@ -43,6 +43,12 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Репозиторий профилей работает через JdbcClient; без spring-boot-starter-jdbc,
+             чтобы контекст утилиты поднимался и без настроенной базы -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
