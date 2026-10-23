@@ -14,22 +14,37 @@
       <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
     </ThreadGroup>
     <hashTree>
-<#list requests as request>
-      <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="${request.method} ${request.path?xml}" enabled="true">
-        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-          <collectionProp name="Arguments.arguments"/>
-        </elementProp>
-        <stringProp name="HTTPSampler.domain">${host}</stringProp>
-        <stringProp name="HTTPSampler.port">${port}</stringProp>
-        <stringProp name="HTTPSampler.protocol">http</stringProp>
-        <stringProp name="HTTPSampler.path">${request.path?xml}</stringProp>
-        <stringProp name="HTTPSampler.method">${request.method?xml}</stringProp>
-        <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-        <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
-        <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-        <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
-      </HTTPSamplerProxy>
-      <hashTree/>
+<#list sequences as sequence>
+      <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="${sequence.name?xml}" enabled="true">
+        <boolProp name="ThroughputController.perIteration">false</boolProp>
+        <intProp name="ThroughputController.style">1</intProp>
+        <stringProp name="ThroughputController.percent">${(sequence.weight * 100)?string("0.##")}</stringProp>
+      </ThroughputController>
+      <hashTree>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="${sequence.name?xml}" enabled="true">
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+          <boolProp name="TransactionController.parent">true</boolProp>
+        </TransactionController>
+        <hashTree>
+  <#list sequence.steps as request>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="${request.method} ${request.path?xml}" enabled="true">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
+              <collectionProp name="Arguments.arguments"/>
+            </elementProp>
+            <stringProp name="HTTPSampler.domain">${host}</stringProp>
+            <stringProp name="HTTPSampler.port">${port}</stringProp>
+            <stringProp name="HTTPSampler.protocol">http</stringProp>
+            <stringProp name="HTTPSampler.path">${request.path?xml}</stringProp>
+            <stringProp name="HTTPSampler.method">${request.method?xml}</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree/>
+  </#list>
+        </hashTree>
+      </hashTree>
 </#list>
       <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP-заголовки" enabled="true">
         <collectionProp name="HeaderManager.headers">

@@ -1,6 +1,7 @@
 package ru.rudoy.loadprofile.generator;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -10,32 +11,58 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.junit.jupiter.api.Test;
 
-/** Генератор проверяется сравнением с эталонным файлом. */
+/** Генератор проверяется сравнением с эталонными файлами. */
 class JmeterPlanWriterTest {
-
-    private static final Path GOLDEN = Path.of("src/test/resources/generator/minimal-plan.jmx");
 
     private final JmeterPlanWriter writer = new JmeterPlanWriter();
 
     @Test
     void minimalPlanMatchesGoldenFile() throws Exception {
-        String generated = writer.write(new JmeterPlan("localhost", 8081,
-                List.of(new JmeterPlan.HttpRequest("GET", "/api/products"))));
+        assertMatchesGolden(minimalPlan(), "minimal-plan.jmx");
+    }
 
-        String golden = Files.readString(GOLDEN, StandardCharsets.UTF_8);
+    @Test
+    void weightedSequencesMatchGoldenFile() throws Exception {
+        assertMatchesGolden(sequencesPlan(), "sequences-plan.jmx");
+    }
+
+    @Test
+    void rejectsBadSequences() {
+        assertThatThrownBy(() -> new JmeterPlan.Sequence("Пустая", 1.0, List.of()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new JmeterPlan.Sequence("Слишком тяжёлая", 1.5,
+                List.of(new JmeterPlan.HttpRequest("GET", "/api/products"))))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private void assertMatchesGolden(JmeterPlan plan, String goldenName) throws Exception {
+        String generated = writer.write(plan);
+        String golden = Files.readString(
+                Path.of("src/test/resources/generator/" + goldenName), StandardCharsets.UTF_8);
         // сравнение без учёта концов строк: рабочая копия на Windows может иметь CRLF
         assertThat(generated.replace("\r\n", "\n"))
                 .isEqualTo(golden.replace("\r\n", "\n"));
-
         DocumentBuilderFactory.newDefaultInstance()
                 .newDocumentBuilder()
                 .parse(new ByteArrayInputStream(generated.getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test
-    void rejectsPlanWithoutRequests() {
-        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
-                        new JmeterPlan("localhost", 8081, List.of()))
-                .isInstanceOf(IllegalArgumentException.class);
+    private static JmeterPlan minimalPlan() {
+        return new JmeterPlan("localhost", 8081, List.of(
+                new JmeterPlan.Sequence("Быстрый просмотр", 1.0,
+                        List.of(new JmeterPlan.HttpRequest("GET", "/api/products")))));
+    }
+
+    private static JmeterPlan sequencesPlan() {
+        return new JmeterPlan("localhost", 8081, List.of(
+                new JmeterPlan.Sequence("Полная покупка", 1.0 / 3, List.of(
+                        new JmeterPlan.HttpRequest("GET", "/api/products"),
+                        new JmeterPlan.HttpRequest("POST", "/api/orders"),
+                        new JmeterPlan.HttpRequest("POST", "/api/orders/{uuid}/checkout"))),
+                new JmeterPlan.Sequence("Просмотр с товаром", 1.0 / 3, List.of(
+                        new JmeterPlan.HttpRequest("GET", "/api/products"),
+                        new JmeterPlan.HttpRequest("GET", "/api/products/{id}"))),
+                new JmeterPlan.Sequence("Быстрый просмотр", 1.0 / 3, List.of(
+                        new JmeterPlan.HttpRequest("GET", "/api/products")))));
     }
 }

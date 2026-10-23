@@ -22,19 +22,26 @@ public final class JmeterPlanWriter {
         freemarker = new Configuration(Configuration.VERSION_2_3_32);
         // ведущий слэш: путь от корня classpath, а не от пакета этого класса
         freemarker.setTemplateLoader(new ClassTemplateLoader(getClass(), "/templates/jmeter"));
-        // числа без разделителей групп: в XML плана нужно 1000, не 1,000
+        // числа без разделителей групп и точка в дробях независимо от локали машины:
+        // в XML плана нужно 1000 и 33.33, не 1 000 и 33,33
         freemarker.setNumberFormat("computer");
+        freemarker.setLocale(java.util.Locale.ENGLISH);
     }
 
     public String write(JmeterPlan plan) {
         try {
             Template template = freemarker.getTemplate("test-plan.ftl");
             // в шаблон уходят карты, а не записи: Freemarker не видит акцессоры record
-            List<Map<String, String>> requests = plan.requests().stream()
-                    .map(request -> Map.of("method", request.method(), "path", request.path()))
+            List<Map<String, Object>> sequences = plan.sequences().stream()
+                    .map(sequence -> Map.<String, Object>of(
+                            "name", sequence.name(),
+                            "weight", sequence.weight(),
+                            "steps", sequence.steps().stream()
+                                    .map(request -> Map.of("method", request.method(), "path", request.path()))
+                                    .toList()))
                     .toList();
             StringWriter out = new StringWriter();
-            template.process(Map.of("host", plan.host(), "port", plan.port(), "requests", requests), out);
+            template.process(Map.of("host", plan.host(), "port", plan.port(), "sequences", sequences), out);
             return out.toString();
         } catch (IOException | TemplateException e) {
             throw new IllegalStateException("cannot render test plan template", e);
