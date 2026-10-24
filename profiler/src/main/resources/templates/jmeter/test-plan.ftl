@@ -2,8 +2,8 @@
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
     <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Пользователи" enabled="true">
-      <stringProp name="ThreadGroup.num_threads">1</stringProp>
-      <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+      <stringProp name="ThreadGroup.num_threads">${threads}</stringProp>
+      <stringProp name="ThreadGroup.ramp_time">${rampSeconds}</stringProp>
       <boolProp name="ThreadGroup.scheduler">false</boolProp>
       <stringProp name="ThreadGroup.duration"/>
       <stringProp name="ThreadGroup.delay"/>
@@ -46,6 +46,11 @@
         </hashTree>
       </hashTree>
 </#list>
+      <GaussianRandomTimer guiclass="GaussianRandomTimerGui" testclass="GaussianRandomTimer" testname="Пауза пользователя" enabled="true">
+        <stringProp name="ConstantTimer.delay">${timerDelayMs}</stringProp>
+        <stringProp name="RandomTimer.range">${timerDeviationMs?string("0.##")}</stringProp>
+      </GaussianRandomTimer>
+      <hashTree/>
       <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP-заголовки" enabled="true">
         <collectionProp name="HeaderManager.headers">
           <elementProp name="" elementType="Header">

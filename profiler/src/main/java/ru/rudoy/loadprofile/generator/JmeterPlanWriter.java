@@ -41,7 +41,14 @@ public final class JmeterPlanWriter {
                                     .toList()))
                     .toList();
             StringWriter out = new StringWriter();
-            template.process(Map.of("host", plan.host(), "port", plan.port(), "sequences", sequences), out);
+            template.process(Map.of(
+                    "host", plan.host(),
+                    "port", plan.port(),
+                    "threads", plan.load().threads(),
+                    "rampSeconds", plan.load().rampSeconds(),
+                    "timerDelayMs", plan.load().timer().constantDelayMs(),
+                    "timerDeviationMs", plan.load().timer().deviationMs(),
+                    "sequences", sequences), out);
             return out.toString();
         } catch (IOException | TemplateException e) {
             throw new IllegalStateException("cannot render test plan template", e);

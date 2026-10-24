@@ -2,8 +2,8 @@ package ru.rudoy.loadprofile.generator;
 
 import java.util.List;
 
-/** План теста: цель и последовательности операций с весами. */
-public record JmeterPlan(String host, int port, List<Sequence> sequences) {
+/** План теста: цель, параметры нагрузки и последовательности операций с весами. */
+public record JmeterPlan(String host, int port, LoadShape load, List<Sequence> sequences) {
 
     public JmeterPlan {
         if (host == null || host.isBlank()) {
@@ -11,6 +11,9 @@ public record JmeterPlan(String host, int port, List<Sequence> sequences) {
         }
         if (port < 1 || port > 65535) {
             throw new IllegalArgumentException("port must be between 1 and 65535: " + port);
+        }
+        if (load == null) {
+            throw new IllegalArgumentException("load must not be null");
         }
         sequences = List.copyOf(sequences);
         if (sequences.isEmpty()) {
