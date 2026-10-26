@@ -32,12 +32,26 @@ public final class JmeterPlanWriter {
         try {
             Template template = freemarker.getTemplate("test-plan.ftl");
             // в шаблон уходят карты, а не записи: Freemarker не видит акцессоры record
+            List<Map<String, Object>> feeders = plan.feeders().stream()
+                    .map(feeder -> Map.<String, Object>of(
+                            "name", feeder.name(), "values", feeder.values()))
+                    .toList();
             List<Map<String, Object>> sequences = plan.sequences().stream()
                     .map(sequence -> Map.<String, Object>of(
                             "name", sequence.name(),
                             "weight", sequence.weight(),
                             "steps", sequence.steps().stream()
-                                    .map(request -> Map.of("method", request.method(), "path", request.path()))
+                                    .map(request -> Map.<String, Object>of(
+                                            "method", request.method(),
+                                            "path", request.path(),
+                                            "query", request.query().stream()
+                                                    .map(param -> Map.of("name", param.name(), "value", param.value()))
+                                                    .toList(),
+                                            "extractions", request.extractions().stream()
+                                                    .map(extraction -> Map.of(
+                                                            "variable", extraction.variable(),
+                                                            "jsonPath", extraction.jsonPath()))
+                                                    .toList()))
                                     .toList()))
                     .toList();
             StringWriter out = new StringWriter();
@@ -48,10 +62,20 @@ public final class JmeterPlanWriter {
                     "rampSeconds", plan.load().rampSeconds(),
                     "timerDelayMs", plan.load().timer().constantDelayMs(),
                     "timerDeviationMs", plan.load().timer().deviationMs(),
+                    "feeders", feeders,
                     "sequences", sequences), out);
             return out.toString();
         } catch (IOException | TemplateException e) {
             throw new IllegalStateException("cannot render test plan template", e);
         }
+    }
+
+    /** CSV-файлы фидеров: имя файла — содержимое, по одному значению в строке. */
+    public Map<String, String> csvFiles(JmeterPlan plan) {
+        Map<String, String> files = new java.util.LinkedHashMap<>();
+        for (JmeterPlan.Feeder feeder : plan.feeders()) {
+            files.put(feeder.name() + ".csv", String.join("\n", feeder.values()) + "\n");
+        }
+        return files;
     }
 }

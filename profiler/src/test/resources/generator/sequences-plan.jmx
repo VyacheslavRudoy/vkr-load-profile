@@ -27,7 +27,8 @@
         <hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/products" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-              <collectionProp name="Arguments.arguments"/>
+              <collectionProp name="Arguments.arguments">
+              </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -42,7 +43,8 @@
           <hashTree/>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/orders" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-              <collectionProp name="Arguments.arguments"/>
+              <collectionProp name="Arguments.arguments">
+              </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -57,7 +59,8 @@
           <hashTree/>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /api/orders/{uuid}/checkout" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-              <collectionProp name="Arguments.arguments"/>
+              <collectionProp name="Arguments.arguments">
+              </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -85,7 +88,8 @@
         <hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/products" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-              <collectionProp name="Arguments.arguments"/>
+              <collectionProp name="Arguments.arguments">
+              </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -100,7 +104,8 @@
           <hashTree/>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/products/{id}" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-              <collectionProp name="Arguments.arguments"/>
+              <collectionProp name="Arguments.arguments">
+              </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>
@@ -128,7 +133,8 @@
         <hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /api/products" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-              <collectionProp name="Arguments.arguments"/>
+              <collectionProp name="Arguments.arguments">
+              </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">localhost</stringProp>
             <stringProp name="HTTPSampler.port">8081</stringProp>

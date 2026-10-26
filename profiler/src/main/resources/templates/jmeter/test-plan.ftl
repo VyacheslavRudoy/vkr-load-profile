@@ -14,6 +14,18 @@
       <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
     </ThreadGroup>
     <hashTree>
+<#list feeders as feeder>
+      <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="${feeder.name?xml}" enabled="true">
+        <stringProp name="filename">${feeder.name?xml}.csv</stringProp>
+        <stringProp name="fileEncoding">UTF-8</stringProp>
+        <stringProp name="variableNames">${feeder.name?xml}</stringProp>
+        <boolProp name="ignoreFirstLine">false</boolProp>
+        <boolProp name="recycle">true</boolProp>
+        <boolProp name="stopThread">false</boolProp>
+        <stringProp name="shareMode">shareMode.all</stringProp>
+      </CSVDataSet>
+      <hashTree/>
+</#list>
 <#list sequences as sequence>
       <ThroughputController guiclass="ThroughputControllerGui" testclass="ThroughputController" testname="${sequence.name?xml}" enabled="true">
         <boolProp name="ThroughputController.perIteration">false</boolProp>
@@ -29,7 +41,17 @@
   <#list sequence.steps as request>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="${request.method} ${request.path?xml}" enabled="true">
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-              <collectionProp name="Arguments.arguments"/>
+              <collectionProp name="Arguments.arguments">
+    <#list request.query as param>
+                <elementProp name="${param.name?xml}" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.value">${param.value?xml}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                  <stringProp name="Argument.name">${param.name?xml}</stringProp>
+                </elementProp>
+    </#list>
+              </collectionProp>
             </elementProp>
             <stringProp name="HTTPSampler.domain">${host}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
@@ -41,7 +63,21 @@
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
             <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
           </HTTPSamplerProxy>
+    <#if request.extractions?size gt 0>
+          <hashTree>
+    <#list request.extractions as extraction>
+            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="${extraction.variable?xml}" enabled="true">
+              <stringProp name="JSONPostProcessor.referenceNames">${extraction.variable?xml}</stringProp>
+              <stringProp name="JSONPostProcessor.jsonPathExprs">${extraction.jsonPath?xml}</stringProp>
+              <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+              <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
+            </JSONPostProcessor>
+            <hashTree/>
+    </#list>
+          </hashTree>
+    <#else>
           <hashTree/>
+    </#if>
   </#list>
         </hashTree>
       </hashTree>
