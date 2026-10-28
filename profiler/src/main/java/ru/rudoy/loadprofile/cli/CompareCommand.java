@@ -1,16 +1,15 @@
 package ru.rudoy.loadprofile.cli;
 
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import ru.rudoy.loadprofile.compare.ProfileComparator;
 import ru.rudoy.loadprofile.model.LoadProfile;
 import ru.rudoy.loadprofile.storage.ProfileDatabase;
 
 @Component
-@Command(name = "compare", description = "Сравнивает два профиля по долям операций.")
+@Command(name = "compare", description = "Сравнивает два профиля: доли операций, интенсивность, паузы.")
 class CompareCommand implements Callable<Integer> {
 
     @Option(names = "--db-url", required = true, description = "URL базы PostgreSQL (jdbc:postgresql://...).")
@@ -36,28 +35,20 @@ class CompareCommand implements Callable<Integer> {
         LoadProfile b = repository.findById(second)
                 .orElseThrow(() -> new IllegalArgumentException("профиль не найден: id=" + second));
 
-        Map<String, Double> sharesA = sharesOf(a);
-        Map<String, Double> sharesB = sharesOf(b);
-        Map<String, Double> deltas = new TreeMap<>();
-        for (String ref : sharesA.keySet()) {
-            deltas.put(ref, sharesA.get(ref) - sharesB.getOrDefault(ref, 0.0));
-        }
-        for (String ref : sharesB.keySet()) {
-            deltas.putIfAbsent(ref, -sharesB.get(ref));
-        }
-        deltas.entrySet().stream()
-                .sorted((x, y) -> Double.compare(Math.abs(y.getValue()), Math.abs(x.getValue())))
-                .forEach(entry -> System.out.printf("%-45s %7.2f%%  %7.2f%%  %+7.2f%%%n",
-                        entry.getKey(),
-                        100 * sharesA.getOrDefault(entry.getKey(), 0.0),
-                        100 * sharesB.getOrDefault(entry.getKey(), 0.0),
-                        100 * entry.getValue()));
+        var comparison = new ProfileComparator().compare(a, b);
+        System.out.printf("Профили: %s (id=%d) и %s (id=%d)%n", a.name(), a.id(), b.name(), b.id());
+        System.out.println("Доли операций:");
+        comparison.operations().forEach(row -> System.out.printf(
+                "  %-45s %7.2f%%  %7.2f%%  %+7.2f%%%n", row.operation(),
+                100 * row.firstShare(), 100 * row.secondShare(), 100 * row.difference()));
+        System.out.printf("Интенсивность: %+.3f сессий/мин (%.3f → %.3f)%n",
+                comparison.sessionsPerMinuteDifference(),
+                a.arrivalRate().sessionsPerMinute(), b.arrivalRate().sessionsPerMinute());
+        System.out.printf("Паузы: медиана %+d мс (%d → %d), p90 %+d мс (%d → %d)%n",
+                comparison.thinkTime().medianMs(),
+                a.thinkTime().medianMs(), b.thinkTime().medianMs(),
+                comparison.thinkTime().p90Ms(),
+                a.thinkTime().p90Ms(), b.thinkTime().p90Ms());
         return 0;
-    }
-
-    private static Map<String, Double> sharesOf(LoadProfile profile) {
-        Map<String, Double> shares = new TreeMap<>();
-        profile.operations().forEach(op -> shares.put(op.ref(), op.share()));
-        return shares;
     }
 }
