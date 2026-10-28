@@ -25,6 +25,9 @@ logs/
 *.jtl
 results/
 
+# Локальные инструменты эксперимента (JMeter и прочее)
+tools/
+
 # Файлы операционной системы
 .DS_Store
 Thumbs.db

@@ -1,7 +1,17 @@
-# Демонстрационный стенд целиком: оба сервиса, коллектор OpenTelemetry
-# и Jaeger. Сервисы собираются из jar-файлов, поэтому сначала ./mvnw verify
-# в корне репозитория, затем docker compose up --build --detach --wait.
+# Демонстрационный стенд целиком: оба сервиса, шлюз, коллектор OpenTelemetry,
+# Jaeger и база профилей. Сервисы собираются из jar-файлов, поэтому сначала
+# ./mvnw verify в корне репозитория, затем docker compose up --build --detach --wait.
 services:
+  gateway:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./gateway.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      - catalog-service
+      - order-service
+
   catalog-service:
     build: demo-stand/services/catalog-service
     ports:
@@ -49,3 +59,17 @@ services:
     image: jaegertracing/jaeger:2.21.0
     ports:
       - "16686:16686"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: profile
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d profile"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
