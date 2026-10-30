@@ -1,0 +1,69 @@
+{
+  "id" : null,
+  "name" : "эталон (аналитический)",
+  "createdAt" : "2026-10-01T00:00:00Z",
+  "sourceWindow" : {
+    "from" : "2026-10-01T10:00:00Z",
+    "to" : "2026-10-01T10:05:00Z"
+  },
+  "operations" : [ {
+    "method" : "GET",
+    "pathTemplate" : "/api/products",
+    "count" : 60,
+    "share" : 0.30303030303030304
+  }, {
+    "method" : "GET",
+    "pathTemplate" : "/api/products/{id}",
+    "count" : 42,
+    "share" : 0.21212121212121213
+  }, {
+    "method" : "POST",
+    "pathTemplate" : "/api/orders",
+    "count" : 24,
+    "share" : 0.12121212121212122
+  }, {
+    "method" : "POST",
+    "pathTemplate" : "/api/orders/{uuid}/items",
+    "count" : 24,
+    "share" : 0.12121212121212122
+  }, {
+    "method" : "POST",
+    "pathTemplate" : "/api/orders/{uuid}/checkout",
+    "count" : 24,
+    "share" : 0.12121212121212122
+  }, {
+    "method" : "GET",
+    "pathTemplate" : "/api/orders/{uuid}",
+    "count" : 24,
+    "share" : 0.12121212121212122
+  } ],
+  "sequences" : [ {
+    "steps" : [ "GET /api/products" ],
+    "count" : 18,
+    "weight" : 0.3
+  }, {
+    "steps" : [ "GET /api/products", "GET /api/products/{id}" ],
+    "count" : 18,
+    "weight" : 0.3
+  }, {
+    "steps" : [ "GET /api/products", "GET /api/products/{id}", "POST /api/orders",
+        "POST /api/orders/{uuid}/items", "POST /api/orders/{uuid}/checkout", "GET /api/orders/{uuid}" ],
+    "count" : 24,
+    "weight" : 0.4
+  } ],
+  "arrivalRate" : {
+    "sessionsPerMinute" : 12.0,
+    "byInterval" : [ {
+      "from" : "2026-10-01T10:00:00Z",
+      "to" : "2026-10-01T10:05:00Z",
+      "value" : 12.0
+    } ]
+  },
+  "thinkTime" : {
+    "medianMs" : 2000,
+    "p90Ms" : 2800,
+    "minMs" : 1000,
+    "maxMs" : 3000
+  },
+  "parameters" : [ ]
+}

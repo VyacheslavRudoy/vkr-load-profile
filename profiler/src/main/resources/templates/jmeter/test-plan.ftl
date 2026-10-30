@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="План теста" enabled="true">
+      <stringProp name="TestPlan.comments"></stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" enabled="true">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+    </TestPlan>
+    <hashTree>
     <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Пользователи" enabled="true">
       <stringProp name="ThreadGroup.num_threads">${threads}</stringProp>
       <stringProp name="ThreadGroup.ramp_time">${rampSeconds}</stringProp>
@@ -93,9 +104,16 @@
             <stringProp name="Header.name">Accept</stringProp>
             <stringProp name="Header.value">application/json</stringProp>
           </elementProp>
+          <#-- план обязан метить сессии, как генератор стенда: идентификатор постоянен в пределах
+             потока (поток живёт одну сессию), функции в заголовке вычисляются на каждый запрос -->
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">baggage</stringProp>
+            <stringProp name="Header.value">session.id=${r"jmeter-${__threadNum()}"}</stringProp>
+          </elementProp>
         </collectionProp>
       </HeaderManager>
       <hashTree/>
+    </hashTree>
     </hashTree>
   </hashTree>
 </jmeterTestPlan>

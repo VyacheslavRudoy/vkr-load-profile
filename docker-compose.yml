@@ -7,7 +7,9 @@ services:
     volumes:
       - ./gateway.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "8080:8080"
+      # внешний порт 18080: на 127.0.0.1:8080 у разработчиков часто сидит свой сервис,
+      # а Java-клиенты ходят по IPv4 и попадают не в шлюз
+      - "18080:8080"
     depends_on:
       - catalog-service
       - order-service
@@ -67,7 +69,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      # внешний порт 15432: стандартный 5432 часто занят локальной базой
+      - "15432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d profile"]
       interval: 5s

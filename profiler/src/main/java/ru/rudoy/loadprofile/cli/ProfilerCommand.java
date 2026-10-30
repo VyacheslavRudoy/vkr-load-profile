@@ -16,7 +16,8 @@ import picocli.CommandLine.Spec;
         mixinStandardHelpOptions = true,
         versionProvider = ProfilerVersionProvider.class,
         resourceBundle = "ru.rudoy.loadprofile.cli.messages",
-        subcommands = {BuildProfileCommand.class, GenerateCommand.class, CompareCommand.class},
+        subcommands = {BuildProfileCommand.class, GenerateCommand.class,
+                CompareCommand.class, LoadProfileCommand.class},
         description = "Строит профиль нагрузки по данным распределённой трассировки "
                 + "и генерирует план теста Apache JMeter.")
 public class ProfilerCommand implements Runnable {
