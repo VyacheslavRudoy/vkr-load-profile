@@ -22,6 +22,10 @@ public final class ProfileRepository {
 
     /** Сохраняет профиль целиком и возвращает его же с назначенным базой идентификатором. */
     public LoadProfile save(LoadProfile profile) {
+        if (profile.id() != null) {
+            throw new IllegalArgumentException(
+                    "profile is already saved: id=" + profile.id() + "; load it without the id field");
+        }
         Long id = jdbc.sql("insert into load_profiles (name, created_at, payload)"
                         + " values (:name, :createdAt, :payload::jsonb) returning id")
                 .param("name", profile.name())

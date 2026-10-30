@@ -71,6 +71,7 @@ A_FROM=$(iso)
 sleep "$SETTLE"
 A_TO=$(iso)
 ID_A=$(build_profile run-a "$A_FROM" "$A_TO" | tail -1)
+if [[ -z "$ID_A" ]]; then echo "Профиль A не сохранился — проверьте Jaeger" >&2; exit 1; fi
 echo "Профиль A: id=$ID_A"
 
 echo "== План B из профиля A"

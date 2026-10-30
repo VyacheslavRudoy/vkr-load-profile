@@ -9,9 +9,10 @@ import java.util.List;
 /** Выписывает план теста и CSV-файлы фидеров в каталог. */
 public final class PlanFiles {
 
+    private final JmeterPlanWriter writer = new JmeterPlanWriter();
+
     public List<Path> write(JmeterPlan plan, Path directory) throws IOException {
         Files.createDirectories(directory);
-        JmeterPlanWriter writer = new JmeterPlanWriter();
         List<Path> written = new ArrayList<>();
         Path planFile = directory.resolve("test-plan.jmx");
         Files.writeString(planFile, writer.write(plan));

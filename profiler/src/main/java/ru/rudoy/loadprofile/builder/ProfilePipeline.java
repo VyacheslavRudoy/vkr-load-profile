@@ -20,6 +20,9 @@ public class ProfilePipeline {
 
     public LoadProfile build(List<Span> spans, String name, SessionStrategyType strategyType,
                              int topSequences, TimeWindow window) {
+        if (spans.isEmpty()) {
+            throw new IllegalArgumentException("no spans in the input: check the time window");
+        }
         List<ru.rudoy.loadprofile.ingest.Trace> traces = new TraceAssembler().assemble(spans);
         List<Session> sessions = SessionStrategies.create(strategyType).group(traces);
         ParametersBuilder parameters = new ParametersBuilder();

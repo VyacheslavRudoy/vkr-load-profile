@@ -125,6 +125,16 @@ class ParametersBuilderTest {
         assertThat(feeder.get(0).sampleValues()).containsExactly("books", "sport");
     }
 
+    @Test
+    void percentEncodedQueryValuesAreDecoded() {
+        Session session = session(
+                trace("t-1", "GET", "/api/products", "category=%D0%BA%D0%BD%D0%B8%D0%B3%D0%B8", "[{\"id\":7}]"));
+
+        List<ParameterSpec> feeder = builder.buildFeeder(List.of(session));
+
+        assertThat(feeder.get(0).sampleValues()).containsExactly("книги");
+    }
+
     private static Session session(Trace... traces) {
         return new Session("s-1", List.of(traces));
     }

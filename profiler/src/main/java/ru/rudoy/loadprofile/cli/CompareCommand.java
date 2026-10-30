@@ -29,6 +29,8 @@ class CompareCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
+        System.setProperty("spring.main.banner-mode", "off");
+        System.setProperty("spring.main.log-startup-info", "false");
         var repository = ProfileDatabase.open(dbUrl, dbUser, dbPassword);
         LoadProfile a = repository.findById(first)
                 .orElseThrow(() -> new IllegalArgumentException("профиль не найден: id=" + first));

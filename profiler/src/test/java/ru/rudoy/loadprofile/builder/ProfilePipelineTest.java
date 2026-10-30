@@ -22,6 +22,18 @@ class ProfilePipelineTest {
     private final ProfilePipeline pipeline = new ProfilePipeline();
 
     @Test
+    void rejectsEmptyInput() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                        pipeline.build(List.of(), "пустой",
+                                ru.rudoy.loadprofile.session.SessionStrategyType.BY_SESSION_ID,
+                                5, new ru.rudoy.loadprofile.ingest.TimeWindow(
+                                        java.time.Instant.parse("2026-10-28T10:00:00Z"),
+                                        java.time.Instant.parse("2026-10-28T11:00:00Z"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no spans");
+    }
+
+    @Test
     void buildsProfileFromTheReferenceSet() {
         List<ru.rudoy.loadprofile.ingest.Span> spans = new OtlpJsonReader().readFile(REFERENCE);
         Instant from = spans.stream().map(s -> s.startTime()).min(Comparator.naturalOrder()).orElseThrow();

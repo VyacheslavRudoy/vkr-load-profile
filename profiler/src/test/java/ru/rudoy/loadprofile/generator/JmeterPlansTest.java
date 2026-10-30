@@ -63,6 +63,31 @@ class JmeterPlansTest {
                 .hasMessageContaining("{id}");
     }
 
+    @Test
+    void mergesFeederValuesWhenTheSameNameAppearsOnTwoOperations() {
+        Instant from = Instant.parse("2026-10-27T10:00:00Z");
+        Instant to = Instant.parse("2026-10-27T10:01:00Z");
+        LoadProfile profile = new LoadProfile(null, "два productId", Instant.parse("2026-10-27T11:00:00Z"),
+                new TimeWindow(from, to),
+                List.of(new Operation("GET", "/api/products", 6, 0.5),
+                        new Operation("POST", "/api/orders/items", 6, 0.5)),
+                List.of(new ru.rudoy.loadprofile.model.Sequence(
+                        List.of("GET /api/products", "POST /api/orders/items"), 6, 1.0)),
+                new ArrivalRate(6.0, List.of()),
+                new ThinkTimeStats(2000, 2800, 1000, 3000),
+                List.of(
+                        new ParameterSpec("productId", "POST /api/orders/items",
+                                ParameterSource.FEEDER, null, List.of("7", "12")),
+                        new ParameterSpec("productId", "GET /api/products",
+                                ParameterSource.FEEDER, null, List.of("12", "23"))));
+
+        JmeterPlan plan = JmeterPlans.from(profile, "localhost", 8080);
+
+        assertThat(plan.feeders()).hasSize(1);
+        assertThat(plan.feeders().get(0).name()).isEqualTo("productId");
+        assertThat(plan.feeders().get(0).values()).containsExactly("7", "12", "23");
+    }
+
     private static LoadProfile profile() {
         Instant from = Instant.parse("2026-10-27T10:00:00Z");
         Instant to = Instant.parse("2026-10-27T10:01:00Z");

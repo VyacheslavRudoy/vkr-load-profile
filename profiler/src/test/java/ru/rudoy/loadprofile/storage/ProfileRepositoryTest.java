@@ -44,6 +44,16 @@ class ProfileRepositoryTest {
         assertThat(repository().findById(Long.MAX_VALUE)).isEmpty();
     }
 
+    @Test
+    void rejectsAlreadySavedProfile() {
+        ProfileRepository repository = repository();
+        LoadProfile saved = repository.save(profile("run-a"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> repository.save(saved))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already saved");
+    }
+
     private static ProfileRepository repository() {
         Flyway.configure()
                 .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())

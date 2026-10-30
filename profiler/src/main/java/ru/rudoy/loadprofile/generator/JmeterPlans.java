@@ -2,6 +2,8 @@ package ru.rudoy.loadprofile.generator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import ru.rudoy.loadprofile.model.LoadProfile;
@@ -28,7 +30,8 @@ public final class JmeterPlans {
         }
         Map<String, List<ParameterSpec>> specsByOperation = new HashMap<>();
         Map<String, List<JmeterPlan.HttpRequest.Extraction>> extractionsBySource = new HashMap<>();
-        List<JmeterPlan.Feeder> feeders = new ArrayList<>();
+        // значения фидеров с одинаковым именем объединяются: CSV-файл один на переменную
+        Map<String, LinkedHashSet<String>> feederValues = new LinkedHashMap<>();
         for (ParameterSpec spec : profile.parameters()) {
             specsByOperation.computeIfAbsent(spec.operationRef(), ref -> new ArrayList<>()).add(spec);
             if (spec.source() == ParameterSource.CORRELATED) {
@@ -36,8 +39,13 @@ public final class JmeterPlans {
                         .computeIfAbsent(spec.correlation().sourceOperationRef(), ref -> new ArrayList<>())
                         .add(new JmeterPlan.HttpRequest.Extraction(spec.name(), spec.correlation().jsonPath()));
             } else {
-                feeders.add(new JmeterPlan.Feeder(spec.name(), spec.sampleValues()));
+                feederValues.computeIfAbsent(spec.name(), name -> new LinkedHashSet<>())
+                        .addAll(spec.sampleValues());
             }
+        }
+        List<JmeterPlan.Feeder> feeders = new ArrayList<>();
+        for (var entry : feederValues.entrySet()) {
+            feeders.add(new JmeterPlan.Feeder(entry.getKey(), List.copyOf(entry.getValue())));
         }
         List<JmeterPlan.Sequence> sequences = new ArrayList<>();
         int number = 1;
