@@ -70,6 +70,29 @@ class JaegerApiReaderTest {
                 .hasMessageContaining("503");
     }
 
+    @Test
+    void emptyWindowIsNoTracesNotAnError() {
+        jaeger.respondWith(404, "{\"error\":{\"httpCode\":404,\"message\":\"No traces found\"}}");
+
+        assertThat(reader.fetch(window())).isEmpty();
+    }
+
+    @Test
+    void followsPagesUntilNoToken() throws IOException {
+        String sample = Files.readString(SAMPLE);
+        jaeger.respondSequentiallyWith(200,
+                "{\"result\":{\"resourceSpans\":[], \"nextPageToken\": \"page-2\"}}",
+                "{\"result\":{\"resourceSpans\":[], \"nextPageToken\": \"page-3\"}}",
+                "{\"result\":{\"resourceSpans\":[], \"nextPageToken\": \"\"}}");
+
+        reader.fetch(window());
+
+        assertThat(jaeger.requestUris()).hasSize(3);
+        assertThat(jaeger.requestUris().get(0).getQuery()).doesNotContain("pageToken");
+        assertThat(jaeger.requestUris().get(1).getQuery()).contains("pageToken=page-2");
+        assertThat(jaeger.requestUris().get(2).getQuery()).contains("pageToken=page-3");
+    }
+
     private static TimeWindow window() {
         return new TimeWindow(
                 Instant.parse("2026-09-28T10:00:00Z"), Instant.parse("2026-09-28T11:00:00Z"));

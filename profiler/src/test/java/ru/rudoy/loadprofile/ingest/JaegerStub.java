@@ -6,17 +6,19 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Мини-сервер Jaeger для тестов: помнит последний пришедший запрос
- * и отвечает заранее заданными кодом и телом.
+ * Мини-сервер Jaeger для тестов: помнит пришедшие запросы и раздаёт
+ * заранее заданные ответы по очереди; последний ответ повторяется.
  */
 final class JaegerStub implements AutoCloseable {
 
     private final HttpServer server;
-    private volatile URI lastRequestUri;
+    private final List<URI> requestUris = new CopyOnWriteArrayList<>();
     private volatile int status = 200;
-    private volatile String body = "{\"result\":{\"resourceSpans\":[]}}";
+    private volatile List<String> bodies = List.of("{\"result\":{\"resourceSpans\":[]}}");
 
     JaegerStub() throws IOException {
         server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
@@ -29,17 +31,28 @@ final class JaegerStub implements AutoCloseable {
     }
 
     URI lastRequestUri() {
-        return lastRequestUri;
+        return requestUris.getLast();
+    }
+
+    List<URI> requestUris() {
+        return List.copyOf(requestUris);
     }
 
     void respondWith(int status, String body) {
         this.status = status;
-        this.body = body;
+        this.bodies = List.of(body);
+    }
+
+    /** Ответы раздаются по очереди, последний повторяется. */
+    void respondSequentiallyWith(int status, String... bodies) {
+        this.status = status;
+        this.bodies = List.of(bodies);
     }
 
     private void handle(HttpExchange exchange) throws IOException {
-        lastRequestUri = exchange.getRequestURI();
-        byte[] payload = body.getBytes(StandardCharsets.UTF_8);
+        requestUris.add(exchange.getRequestURI());
+        int index = Math.min(requestUris.size() - 1, bodies.size() - 1);
+        byte[] payload = bodies.get(index).getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", "application/json");
         exchange.sendResponseHeaders(status, payload.length);
         exchange.getResponseBody().write(payload);

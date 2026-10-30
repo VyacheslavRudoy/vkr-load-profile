@@ -110,6 +110,11 @@ public final class OtlpJsonReader {
         Map<String, Object> result = new LinkedHashMap<>();
         for (JsonNode attribute : attributes) {
             String key = attribute.path("key").asText();
+            // @jaeger@* — служебные атрибуты хранилища (например, предупреждение
+            // о расхождении часов); к нагрузке они отношения не имеют
+            if (key.startsWith("@jaeger")) {
+                continue;
+            }
             result.put(key, value(key, attribute.path("value")));
         }
         return result;

@@ -6,10 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,10 +20,10 @@ import java.util.List;
  * <p>
  * Jaeger 2.x отдаёт трассы по HTTP в OTLP JSON на {@code /api/v3/traces};
  * границы окна передаются параметрами {@code query.startTimeMin} и
- * {@code query.startTimeMax}. Ответ приходит в конверте {@code result} —
- * класс снимает его и отдаёт содержимое готовому {@link OtlpJsonReader},
- * поэтому сам занимается только запросом: собирает адрес, ходит по сети
- * и проверяет код ответа.
+ * {@code query.startTimeMax}. Выдача ограничена по числу трасс, поэтому
+ * класс читает страницы до конца: пока в ответе есть {@code nextPageToken},
+ * повторяет запрос с ним. Ответ приходит в конверте {@code result} — класс
+ * снимает его и отдаёт содержимое готовому {@link OtlpJsonReader}.
  */
 public final class JaegerApiReader {
 
@@ -36,32 +39,50 @@ public final class JaegerApiReader {
         this.baseUri = URI.create(trimmed);
     }
 
-    /** Выгружает все спаны трасс, попадающих в окно. */
+    /** Выгружает все спаны трасс, попадающих в окно. Пустое окно — пустой список. */
     public List<Span> fetch(TimeWindow window) {
-        // Двоеточия в метках времени разрешены в строке запроса, кодировать их не нужно
-        URI uri = URI.create(baseUri + "/api/v3/traces"
-                + "?query.startTimeMin=" + window.from()
-                + "&query.startTimeMax=" + window.to());
-        HttpRequest request = HttpRequest.newBuilder(uri)
-                .timeout(Duration.ofSeconds(30))
-                .GET()
-                .build();
-        HttpResponse<String> response = send(request);
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException("Jaeger returned HTTP " + response.statusCode()
-                    + ": " + excerpt(response.body()));
+        List<Span> spans = new ArrayList<>();
+        String pageToken = null;
+        while (true) {
+            // Двоеточия в метках времени разрешены в строке запроса, кодировать их не нужно
+            String url = baseUri + "/api/v3/traces"
+                    + "?query.startTimeMin=" + window.from()
+                    + "&query.startTimeMax=" + window.to();
+            if (pageToken != null) {
+                url += "&pageToken=" + URLEncoder.encode(pageToken, StandardCharsets.UTF_8);
+            }
+            HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                    .timeout(Duration.ofSeconds(30))
+                    .GET()
+                    .build();
+            HttpResponse<String> response = send(request);
+            // 404 «No traces found» — легитимный пустой результат, не ошибка
+            if (response.statusCode() == 404) {
+                return spans;
+            }
+            if (response.statusCode() != 200) {
+                throw new IllegalStateException("Jaeger returned HTTP " + response.statusCode()
+                        + ": " + excerpt(response.body()));
+            }
+            JsonNode payload = otlpPayload(response.body());
+            spans.addAll(otlpJson.readSpans(payload.toString()));
+            pageToken = payload.has("nextPageToken") && !payload.path("nextPageToken").asText().isEmpty()
+                    ? payload.path("nextPageToken").asText()
+                    : null;
+            if (pageToken == null) {
+                return spans;
+            }
         }
-        return otlpJson.readSpans(otlpPayload(response.body()));
     }
 
     /**
      * Снимает конверт {@code {"result": {...}}}, в который Jaeger заворачивает
      * ответ. Ответ без конверта — как от заглушек — принимается как есть.
      */
-    private String otlpPayload(String body) {
+    private JsonNode otlpPayload(String body) {
         try {
             JsonNode root = json.readTree(body);
-            return root.has("result") ? root.get("result").toString() : body;
+            return root.has("result") ? root.get("result") : root;
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Jaeger answer is not valid JSON", e);
         }
