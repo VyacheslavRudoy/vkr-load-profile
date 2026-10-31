@@ -91,7 +91,6 @@ echo "Профиль B: id=$ID_B"
 echo "== Сравнение A↔B"
 "$JAVA" -jar "$PROFILER" compare --first "$ID_A" --second "$ID_B" \
   --db-url "$DB_URL" --db-user "$DB_USER" --db-password "$DB_PASSWORD" \
-  --spring.main.banner-mode=off --spring.main.log-startup-info=false \
-  > "$OUTDIR/compare.txt" 2>/dev/null
+  | tee "$OUTDIR/compare.txt"
 
 echo "== Готово: $OUTDIR/compare.txt"
